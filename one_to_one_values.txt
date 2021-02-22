@@ -1,0 +1,34 @@
+census-income.data.d241850.csv:
+Wage Per Hour vs Age:
+one one mappings are: 0.0
+many to many vals: 0.3821042084168337
+one to many vals: 0.6178957915831663
+
+census1881.csv:
+Province vs "Village" (This is probably not right tho)
+one one mappings are: 0 proportion: 0.0
+many to many vals: 0.3067287043664996
+one to many vals: 0.6932712956335003
+one to one vals: 0.0
+
+First name vs Last name
+one one mappings are: 1569 proportion: 0.010262884204054133
+many to many vals: 0.29299258900713626
+one to many vals: 0.6967445267888096
+one to one vals: 0.010262884204054079
+
+wikileaks.csv:
+Code vs Location
+one one mappings are: 0 proportion: 0.0
+many to many vals: 0.36372472783825816
+one to many vals: 0.6362752721617418
+one to one vals: 0.0
+
+All columns have high 1 to x ratios
+
+imdb:
+columns company_name country_code
+one one mappings are: 14 proportion: 6.239248437959588e-05
+many to many vals: 0.033371065931029564
+one to many vals: 0.9665665415845909
+one to one vals: 6.239248437955869e-05
