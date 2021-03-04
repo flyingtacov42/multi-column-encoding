@@ -426,6 +426,19 @@ def plot_fpr_size(correl_fpr_list, correl_size_list, normal_fpr_list, normal_siz
     plt.clf()
 
 
+def transform_nans_to_str(matrix):
+    """
+    Transforms all float nan values to string "nan"
+    This is done so that nans are seen as equal by encoding scheme
+    :param matrix: input matrix
+    :return: nothing, matrix is modified in place
+    """
+    for row in matrix:
+        for ele in row:
+            if ele != ele:  # only nans aren't equal to themselves
+                ele = "nan"
+
+
 def delete_rows_with_nans(matrix):
     """
     Deletes all rows with nans from the matrix
@@ -454,74 +467,83 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
     :return: nothing
     """
     matrix, df = read_and_create_matrix(file_name, acceptance_list)
-    matrix = delete_rows_with_nans(matrix)[:100000]
-    print ("After Nans have been removed, length is ", len(matrix))
-    # matrix, _, _ = encode_median_regression.encode_categorical_vs_categorical(matrix, df, 0, 1)
+    matrix = matrix[:100000]
+    transform_nans_to_str(matrix)
+    print("After Nans have been removed, length is ", len(matrix))
 
-    # def less_than_120(row):
-    #     if row[2] < 120:
-    #         return True
-    #     return False
-    #
-    # matrix = list(filter(less_than_120, matrix))
+    output = []
+    for i in range(len(matrix[0])):
+        for j in range(len(matrix[0])):
+            if i == j:
+                continue
+            matrix_random, _, _ = encode_median_regression.encode_random(matrix, df, i, j)
 
+            matrix_multiset, _, _, factor, cutoff = multiset_encoding.encode_multiset(matrix, df, i, j)
+            # print (matrix_multiset[:10])
+            print(factor, cutoff)
 
-    # matrix_correl, _ = encode_median_regression.encode_median_regression(matrix, df, i, 2)
-    matrix_random, _ = encode_median_regression.encode_random(matrix, df, 1, 0)
+            # random.shuffle(matrix_correl)
+            # random.shuffle(matrix_random)
 
-    matrix_multiset, _, _, factor, cutoff = multiset_encoding.encode_multiset(matrix, df, 1, 0)
-    print (factor, cutoff)
+            block_size_list = [2 ** x for x in range(10, 15)]
+            grid_size_list = [10, 20, 30, 40, 50]
+            correl_fpr_list = []
+            bloom_fpr_list = []
+            for block_size in block_size_list:
+                print("Block Size:", block_size)
+                correl_fpr = test_filter_fpr.analyze_fpr_2d(matrix_multiset, multiset_encoding.DisjointSetBloomFilter2d,
+                                                            factor, cutoff, block_size, 0.1, block_size=block_size,
+                                                            test_amount=2 ** 11, show=False)
+                bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random, encode_median_regression.BloomFilter2d,
+                                                           block_size, 0.1, block_size=block_size, test_amount=2 ** 11,
+                                                           show=False)
+                correl_fpr_list.append(correl_fpr)
+                bloom_fpr_list.append(bloom_fpr)
+                print("Multiset + Bloom fpr:", correl_fpr)
+                print("Bloom only fpr:", bloom_fpr)
 
-    # random.shuffle(matrix_correl)
-    # random.shuffle(matrix_random)
-
-    block_size_list = [2**x for x in range(10, 15)]
-    grid_size_list = [10, 20, 30, 40, 50]
-    correl_fpr_list = []
-    bloom_fpr_list = []
-    for block_size in block_size_list:
-        print ("Block Size:", block_size)
-        correl_fpr = test_filter_fpr.analyze_fpr_2d(matrix_multiset, multiset_encoding.DisjointSetBloomFilter2d,
-                                                             factor, cutoff, block_size, 0.1, block_size=block_size,
-                                                             test_amount=2**11, show=False)
-        bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random, encode_median_regression.BloomFilter2d, block_size, 0.1,
-                                                            block_size=block_size, test_amount=2 ** 11, show=False)
-        correl_fpr_list.append(correl_fpr)
-        bloom_fpr_list.append(bloom_fpr)
-        print("Multiset + Bloom fpr:", correl_fpr)
-        print("Bloom only fpr:", bloom_fpr)
-
-    plt.plot(block_size_list, correl_fpr_list, label="Correl")
-    plt.plot(block_size_list, bloom_fpr_list, label="Bloom")
-    plt.xlabel("Block size")
-    plt.xscale("log")
-    plt.ylabel("False positive Rate")
-    plt.title("Census Data (First Name vs Last Name)")
-    plt.legend()
-    plt.savefig("multiset_imdb_block.png")
-    plt.show()
-
-    # print("random encoding")
-    # encode_median_regression.analyze_fpr_2_dim(matrix_random, block_size=2 ** 11,
-    #                                            col_1_bins=10, col_2_bins=10, test_amount=2 ** 11, show=False)
-    # print("correlated encoding")
-    # encode_median_regression.analyze_fpr_2_dim(matrix_correl, block_size=2 ** 11,
-    #                                            col_1_bins=10, col_2_bins=10, test_amount=2 ** 11, show=False)
+            plt.plot(block_size_list, correl_fpr_list, label="Multiset Encoding + Bloom")
+            plt.plot(block_size_list, bloom_fpr_list, label="Bloom")
+            plt.xlabel("Block size")
+            plt.xscale("log")
+            plt.ylabel("False positive Rate")
+            plt.title("Census Data ({} vs {})".format(df.columns[i], df.columns[j]))
+            plt.legend()
+            # plt.savefig("census_plots/multiset_{}_{}.png".format(df.columns[i], df.columns[j]))
+            plt.clf()
+            improvement_ratio = []
+            for c, b in zip(correl_fpr_list, bloom_fpr_list):
+                # If both c and b are << 0.01, then their results matter less
+                if (b != 0):
+                    improvement_ratio.append(1 - c / b)
+            improvement_ratio = sum(improvement_ratio) / len(improvement_ratio)
+            if improvement_ratio >= 1:
+                improvement_ratio = -1
+            else:
+                improvement_ratio = 1 / (1 - improvement_ratio)
+            output.append([df.columns[i], df.columns[j], improvement_ratio])
+            # plt.show()
+    output.sort(key=lambda x: x[2], reverse=True)
+    output = [x[0] + " " + x[1] + " " + str(x[2]) + "\n" for x in output]
+    # with open("census_plots/census_encoding.txt", "w") as fout:
+    #     fout.writelines(output)
 
     return
 
 
 # DMV
 file_name = "imdb.csv"
-# file_name = "dmv.csv"
+# file_name = "census1881.csv"
 # file_name="dmv_tiny.csv"
 # acceptance_list=["col0", "col1"]
 # acceptance_list=["State","Zip"]
-acceptance_list = ["company_name", "country_code"]
+# acceptance_list = ["kind", "production_year"]
+# acceptance_list = ["title","imdb_index","kind","production_year","season_nr","espisode_nr","series_year","company_name","country_code"]
 # acceptance_list = ["Date", "Time", "Location", "Code"]
 # acceptance_list = ["First Name", "Last Name", "Age", "Sect", "Province", "Occupation", "Village"]
 # acceptance_list = ["high", "low"]
-# acceptance_list = ["open", "close"]
+acceptance_list = ["season_nr", "imdb_index"]
+# acceptance_list = ["date","open","high","low","close","volume","Name"]
 # acceptance_list = ["First Name", "Age"]
 # acceptance_list = ["Age", "Occupation"]
 # acceptance_list=["Record Type","Registration Class"]

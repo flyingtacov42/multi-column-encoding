@@ -35,6 +35,8 @@ def analyze_fpr_2d_1_round(filter_block, test_block, filter_2d, test_amount=2 **
     if show:
         filter_2d.plot()
 
+    if negative_count == 0:
+        return 0
     return false_pos_count / negative_count
 
 

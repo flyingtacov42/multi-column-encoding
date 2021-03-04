@@ -63,7 +63,7 @@ def encode_categorical_vs_categorical(matrix, df, i, j):
 
 def encode_categorical_vs_categorical_half(matrix, i, j):
     """
-    half of the encode categoricl vs categorical function
+    half of the encode categorical vs categorical function
     (this is a helper function)
     """
     counter = Counter([row[i] for row in matrix])
@@ -88,23 +88,24 @@ def encode_random(matrix, df, i, j):
     Requirements: columns i must be categorical
     column j must be numerical
     ex) Name vs Age
-    Encodes column i randomly but doesn't encode column j
+    Encodes column i and j randomly
     :param matrix: data matrix
     :param df: pandas dataframe
     :param i: categorical column
     :param j: numerical column
-    :return: encoded matrix (with only ith and jth column), encoding scheme
+    :return: encoded matrix (with only ith and jth column), encoding scheme i, encoding scheme j
     """
     print("Encoding {} vs {} with random encoding".format(df.columns[i], df.columns[j]))
     unique_entries_i = list(set([row[i] for row in matrix]))  # Get unique elements from column i
-    # random.shuffle(unique_entries_i)
-    encoding_scheme = {unique_entries_i[i]: i for i in range(len(unique_entries_i))}
+    encoding_scheme_i = {unique_entries_i[i]: i for i in range(len(unique_entries_i))}
+    unique_entries_j = list(set([row[j] for row in matrix]))  # Get unique elements from column j
+    encoding_scheme_j = {unique_entries_j[i]: i for i in range(len(unique_entries_j))}
 
     new_matrix = []
     for row in matrix:
-        new_matrix.append([encoding_scheme[row[i]], row[j]])
+        new_matrix.append([encoding_scheme_i[row[i]], encoding_scheme_j[row[j]]])
 
-    return new_matrix, encoding_scheme
+    return new_matrix, encoding_scheme_i, encoding_scheme_j
 
 
 class CorrelFilter(Filter):
