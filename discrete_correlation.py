@@ -431,12 +431,18 @@ def transform_nans_to_str(matrix):
     Transforms all float nan values to string "nan"
     This is done so that nans are seen as equal by encoding scheme
     :param matrix: input matrix
-    :return: nothing, matrix is modified in place
+    :return: new matrix with all nans -> "nan"
     """
+    new_matrix = []
     for row in matrix:
+        new_row = []
         for ele in row:
             if ele != ele:  # only nans aren't equal to themselves
-                ele = "nan"
+                new_row.append("nan")
+            else:
+                new_row.append(ele)
+        new_matrix.append(new_row)
+    return new_matrix
 
 
 def delete_rows_with_nans(matrix):
@@ -468,7 +474,7 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
     """
     matrix, df = read_and_create_matrix(file_name, acceptance_list)
     matrix = matrix[:100000]
-    transform_nans_to_str(matrix)
+    matrix = transform_nans_to_str(matrix)
     print("After Nans have been removed, length is ", len(matrix))
 
     output = []
@@ -507,25 +513,31 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
             plt.xlabel("Block size")
             plt.xscale("log")
             plt.ylabel("False positive Rate")
-            plt.title("Census Data ({} vs {})".format(df.columns[i], df.columns[j]))
+            plt.title("Imdb Data ({} vs {})".format(df.columns[i], df.columns[j]))
             plt.legend()
-            # plt.savefig("census_plots/multiset_{}_{}.png".format(df.columns[i], df.columns[j]))
+            # plt.savefig("imdb_plots/multiset_{}_{}.png".format(df.columns[i], df.columns[j]))
+            plt.show()
             plt.clf()
             improvement_ratio = []
             for c, b in zip(correl_fpr_list, bloom_fpr_list):
                 # If both c and b are << 0.01, then their results matter less
                 if (b != 0):
                     improvement_ratio.append(1 - c / b)
+
+            # sometimes it breaks and both fprs are always 0
+            if (len(improvement_ratio) == 0):
+                continue
             improvement_ratio = sum(improvement_ratio) / len(improvement_ratio)
             if improvement_ratio >= 1:
                 improvement_ratio = -1
             else:
                 improvement_ratio = 1 / (1 - improvement_ratio)
+            print ("Improvement ratio is: {}".format(improvement_ratio))
             output.append([df.columns[i], df.columns[j], improvement_ratio])
             # plt.show()
     output.sort(key=lambda x: x[2], reverse=True)
     output = [x[0] + " " + x[1] + " " + str(x[2]) + "\n" for x in output]
-    # with open("census_plots/census_encoding.txt", "w") as fout:
+    # with open("imdb_plots/imdb_encoding.txt", "w") as fout:
     #     fout.writelines(output)
 
     return
@@ -537,12 +549,12 @@ file_name = "imdb.csv"
 # file_name="dmv_tiny.csv"
 # acceptance_list=["col0", "col1"]
 # acceptance_list=["State","Zip"]
-# acceptance_list = ["kind", "production_year"]
+acceptance_list = ["kind", "title"]
 # acceptance_list = ["title","imdb_index","kind","production_year","season_nr","espisode_nr","series_year","company_name","country_code"]
 # acceptance_list = ["Date", "Time", "Location", "Code"]
 # acceptance_list = ["First Name", "Last Name", "Age", "Sect", "Province", "Occupation", "Village"]
 # acceptance_list = ["high", "low"]
-acceptance_list = ["season_nr", "imdb_index"]
+# acceptance_list = ["season_nr", "imdb_index"]
 # acceptance_list = ["date","open","high","low","close","volume","Name"]
 # acceptance_list = ["First Name", "Age"]
 # acceptance_list = ["Age", "Occupation"]
