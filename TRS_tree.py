@@ -270,10 +270,15 @@ class TRSNode:
 
 if __name__ == "__main__":
     t = TRSTree(2, 0.1, 1)
-    matrix = [[i + random.random(), i * 2 + random.random()] for i in range(10000)]
+    matrix = [[i, i * 2] for i in range(10000)]
+    matrix2 = [[-i - 10000, -2*i - 10000] for i in range(10000)]
+    full_matrix = []
+    for i in range(10000):
+        full_matrix.append(matrix[i])
+        full_matrix.append(matrix2[i])
     # matrix = [[3,1], [5,2], [9,4], [0,100], [10, 102], [5, 101]]
     # matrix = [[3,1], [9,4], [0,100], [5, 101]]
-    t.build_tree(matrix, "xd", 0, 1)
+    t.build_tree(full_matrix, "xd", 0, 1)
     print (t.get_host_range(1, 4))
     print (t.get_num_nodes())
     print (len(t._get_all_leaf_nodes()))
