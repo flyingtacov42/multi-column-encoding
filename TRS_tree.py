@@ -2,6 +2,7 @@ import bisect
 from scipy.stats import linregress
 import random
 import math
+import numpy as np
 
 class TRSTree:
     """
@@ -23,7 +24,7 @@ class TRSTree:
         self.error_bound = error_bound
         self.root = None
 
-    def build_tree(self, matrix, df, host_index, target_index):
+    def build_tree(self, matrix, host_index, target_index, verbose=False):
         """
         Constructs the TRS tree
         :param matrix: database in matrix form
@@ -41,12 +42,13 @@ class TRSTree:
         while queue:
             node = queue.pop(0)
             low_cutoff, high_cutoff = node.low_cutoff, node.high_cutoff
-            print ("Node with low cutoff = {} and high cutoff = {}".format(low_cutoff, high_cutoff))
             bounded_matrix = self._get_rows_in_range(submatrix, low_cutoff, high_cutoff)
-            print ("Regression: (alpha, beta)")
-            print (node.create_regression(bounded_matrix))
-            print ("Outliers: ")
-            print (node.find_outliers(bounded_matrix, self.error_bound))
+            alpha, beta = node.create_regression(bounded_matrix)
+            outliers = node.find_outliers(bounded_matrix, self.error_bound)
+            if verbose:
+                print("Node with low cutoff = {} and high cutoff = {}".format(low_cutoff, high_cutoff))
+                print("Regression: (alpha, beta) = {}, {}".format(alpha, beta))
+                # print("Outliers: {}".format(outliers))
             if not node.validate(bounded_matrix, self.outlier_ratio):
                 child_nodes = node.split(self.node_fanout)
                 for child in child_nodes:
@@ -149,6 +151,7 @@ class TRSNode:
         self.outliers = outliers
         self.alpha = 0
         self.beta = 0
+        self.regression_flag = False # Flag to detect nans in regression
 
     def create_regression(self, database_rows):
         """
@@ -167,6 +170,15 @@ class TRSNode:
             slope, intercept, r, p, se = linregress(target_col, host_col)
             self.alpha = intercept
             self.beta = slope
+            # if nan intercept and slope
+            # This can occur if all of target_col is the same number
+            if np.isnan(intercept):
+                self.alpha = 0
+                if target_col[0] != 0:
+                    self.beta = np.mean(host_col) / (target_col[0])
+                else:
+                    self.beta = 0
+                self.regression_flag = True
         elif len(database_rows) == 1:
             self.alpha = database_rows[0][0]
             self.beta = 0
@@ -183,9 +195,12 @@ class TRSNode:
         :param error_bound: error allowed for the regression
         :return: outliers set
         """
+        if len(database_rows) == 0:
+            self.epsilon = 0
+            return self.outliers
         self.epsilon = self.beta * (self.high_cutoff - self.low_cutoff) * error_bound / (2 * len(database_rows))
         for host_entry, target_entry in database_rows:
-            if abs(self._target_to_host(target_entry) - host_entry) > self.epsilon:
+            if abs(self._target_to_host(target_entry) - host_entry) > abs(self.epsilon):
                 if target_entry in self.outliers:
                     self.outliers[target_entry].append(host_entry)
                 else:
@@ -202,10 +217,12 @@ class TRSNode:
         :param outlier_ratio: maximum fraction of outliers allowed
         :return: true if fraction of outliers < outlier_ratio
         """
-        print ("validating")
+        # print ("validating")
         if len(database_rows) == 0:
             return True
-        elif len(self.outliers) / len(database_rows) <= outlier_ratio:
+        elif self._outlier_length() / len(database_rows) <= outlier_ratio:
+            return True
+        elif self.regression_flag:
             return True
         return False
 
@@ -248,13 +265,13 @@ class TRSNode:
             high_cutoff = self.high_cutoff
         host_low_cutoff = self._target_to_host(low_cutoff)
         host_high_cutoff = self._target_to_host(high_cutoff)
-        if (host_low_cutoff > host_high_cutoff):
+        if host_low_cutoff > host_high_cutoff:
             host_low_cutoff, host_high_cutoff = host_high_cutoff, host_low_cutoff
-        host_low_cutoff -= self.epsilon
-        host_high_cutoff += self.epsilon
+        host_low_cutoff -= abs(self.epsilon)
+        host_high_cutoff += abs(self.epsilon)
         outliers_in_range = {}
         for outlier in self.outliers:
-            if outlier > self.low_cutoff and outlier < self.high_cutoff:
+            if outlier >= self.low_cutoff and outlier <= self.high_cutoff:
                 outliers_in_range[outlier] = self.outliers[outlier]
         return host_low_cutoff, host_high_cutoff, outliers_in_range
 
@@ -267,28 +284,18 @@ class TRSNode:
     def get_children(self):
         return self.children
 
+    def _outlier_length(self):
+        """
+        Gets the total number of outliers in self's own dictionary
+        :return:
+        """
+        return sum([len(x) for x in self.outliers.values()])
 
 if __name__ == "__main__":
-    t = TRSTree(2, 0.1, 1)
-    matrix = [[i, i * 2] for i in range(10000)]
-    matrix2 = [[-i - 10000, -2*i - 10000] for i in range(10000)]
-    full_matrix = []
-    for i in range(10000):
-        full_matrix.append(matrix[i])
-        full_matrix.append(matrix2[i])
-    # matrix = [[3,1], [5,2], [9,4], [0,100], [10, 102], [5, 101]]
-    # matrix = [[3,1], [9,4], [0,100], [5, 101]]
-    t.build_tree(full_matrix, "xd", 0, 1)
-    print (t.get_host_range(1, 4))
-    print (t.get_num_nodes())
-    print (len(t._get_all_leaf_nodes()))
+    t = TRSNode(400, 500, [], {})
+    data = [[i*2, i] for i in range(400, 501)]
+    data.append([2000, 500])
+    t.create_regression(data)
+    t.find_outliers(data, 1)
+    print (t.get_host_range(400, 500))
 
-    # n = TRSNode(0, 1, [], {})
-    # n.alpha = 1
-    # n.beta = 2
-    # print (n.find_outliers([[3,1],[9,4],[0,100]], 0.1))
-
-    # n = TRSNode(0, 1, [], {})
-    # n.create_regression([[1,1]])
-    # n.find_outliers([], 0.1)
-    # n.validate([], 0.1)

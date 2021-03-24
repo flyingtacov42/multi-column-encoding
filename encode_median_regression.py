@@ -1,13 +1,11 @@
-import numpy as np
-import pandas as pd
-import random
-import matplotlib.pyplot as plt
-from copy import deepcopy
 from collections import Counter
-from pybloomfilter import BloomFilter
-import sys
-from util import mapping_dictionary
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from base_filters import Filter, BloomFilter2d
+from util import mapping_dictionary
+
 
 def encode_median_regression(matrix, df, i, j):
     """
@@ -17,16 +15,13 @@ def encode_median_regression(matrix, df, i, j):
     ex) Name vs Age
     For each unique value in column i, find the median
     of the values in column j that they map to
-    Then, encode the values in column i with the values 0
-    through (# of unique elements in col i - 1) in acsending order
-    of the median values
     :param matrix: input matrix from a dataset
     :param df: pandas dataframe
     :param i: column i, the categorical column
     :param j: column j, the numerical column
     :return: encoded matrix (with only ith and jth column), encoding scheme
     """
-    print("Encoding {} vs {} with median regression".format(df.columns[i], df.columns[j]))
+    # print("Encoding {} vs {} with median regression".format(df.columns[i], df.columns[j]))
     unique_columns_i = mapping_dictionary(matrix, i, j)
 
     elements_to_median = [(x, np.median(unique_columns_i[x])) for x in unique_columns_i]
@@ -236,3 +231,9 @@ def plot_median_regression_encoding(matrix_correlated, matrix_random, file_prefi
     if show:
         plt.show()
     plt.clf()
+
+if __name__ == "__main__":
+    data = [[5,'a'], [6,'a'], [3,'b'], [4,'b']]
+    encoded_matrix, encoding_scheme = encode_median_regression(data, 'xd', 1, 0)
+    print (encoded_matrix)
+    print (encoding_scheme)

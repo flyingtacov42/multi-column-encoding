@@ -30,6 +30,7 @@ import seaborn, time
 import encode_median_regression
 import multiset_encoding
 import test_filter_fpr
+import util
 
 seaborn.set_style('whitegrid')
 
@@ -338,21 +339,6 @@ def plot_multiplicity(unique_mappings_count_i, unique_mappings_count_j, output_f
     plt.clf()
 
 
-def read_and_create_matrix(file_name, acceptance_list):
-    df = pd.read_csv(file_name, encoding="ISO8859")
-    col_list = list(df.columns)
-    for i in range(0, len(col_list)):
-        if col_list[i] in acceptance_list:
-            continue
-        df = df.drop(col_list[i], 1)
-
-    print(col_list)
-    print('df stuff', df.columns)
-    print(df)
-    matrix = df.values.tolist()
-    return matrix, df
-
-
 def encode_multiplicity(matrix, df):
     """
     Encodes all columns of the matrix with the following schema
@@ -445,22 +431,7 @@ def transform_nans_to_str(matrix):
     return new_matrix
 
 
-def delete_rows_with_nans(matrix):
-    """
-    Deletes all rows with nans from the matrix
-    :param matrix: input matrix database
-    :return: new matrix with all rows with any nans deleted
-    """
-    new_matrix = []
-    for row in matrix:
-        nans = False
-        for entry in row:
-            if isinstance(entry, (int, float)):
-                if math.isnan(entry):
-                    nans = True
-        if not nans:
-            new_matrix.append(row)
-    return new_matrix
+
 
 
 def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
@@ -472,7 +443,7 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
     :param show: if true, shows plots
     :return: nothing
     """
-    matrix, df = read_and_create_matrix(file_name, acceptance_list)
+    matrix, df = util.read_and_create_matrix(file_name, acceptance_list)
     matrix = matrix[:100000]
     matrix = transform_nans_to_str(matrix)
     print("After Nans have been removed, length is ", len(matrix))
