@@ -20,7 +20,7 @@ class MinMaxMap:
         :param target_index: index of target column
         :return: none
         """
-        for row in matrix:
+        for i, row in enumerate(matrix):
             host = row[host_index]
             target = row[target_index]
             if target in self.min_map:
@@ -30,7 +30,7 @@ class MinMaxMap:
                     self.max_map[target] = host
             else:
                 self.min_map[target] = host
-                self.max_map[target] = target
+                self.max_map[target] = host
 
     def get_bounds(self, target_element):
         """

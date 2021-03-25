@@ -88,7 +88,7 @@ class TRSTree:
                 host_high_cutoff = max(node_high, host_high_cutoff)
                 for entry in node_outliers:
                     if entry in outliers:
-                        outliers[entry] += node_outliers[entry]
+                        outliers[entry] = list(set(outliers[entry] + node_outliers[entry]))
                     else:
                         outliers[entry] = node_outliers[entry]
         return host_low_cutoff, host_high_cutoff, outliers
