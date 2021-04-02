@@ -40,3 +40,11 @@ class MinMaxMap:
         :return: min, max
         """
         return self.min_map[target_element], self.max_map[target_element]
+
+    def get_size(self):
+        """
+        Gets the size of the min max map
+        Size is defined as the number of "pointers", which is 3 * size of min map
+        :return: size
+        """
+        return len(self.min_map) * 3

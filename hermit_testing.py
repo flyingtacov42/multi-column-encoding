@@ -4,7 +4,8 @@ import encode_median_regression
 import math
 import min_max_map
 import bisect
-
+import random
+import matplotlib.pyplot as plt
 
 def test_hermit(matrix, trs_tree):
     pass
@@ -22,13 +23,13 @@ def build_hermit(encoded_matrix, host_col, target_col, outlier_ratio=0.1, error_
     return trs_tree
 
 
-def test_fpr_hermit(trs_tree, encoded_matrix, host_index, target_index):
+def test_efficiency_hermit(trs_tree, encoded_matrix, host_index, target_index):
     """
     Tests the false positive rate of hermit
     when queried with point queries on the categorical column
     The TRS tree creates a range query on the host column
-    Then, the fpr is defined as
-    fpr = # of rows where row[target_col] = point_query / total rows in range query
+    Then, the efficiency is defined as
+    e = # of rows where row[target_col] = point_query / total rows in range query
 
     Performs this analysis for every unique value in target_col
     :param trs_tree: TRS tree, used to get range query
@@ -42,16 +43,31 @@ def test_fpr_hermit(trs_tree, encoded_matrix, host_index, target_index):
     target_col = [row[target_index] for row in encoded_matrix]
     target_col_set = set(target_col)
     avg_fpr = 0
-    for element in target_col_set:
+    avg_outlier_frac = 0
+    for i, element in enumerate(target_col_set):
+        if i % 100 == 0:
+            print (i, len(target_col_set))
         host_low, host_high, outliers = trs_tree.get_host_range(element, element)
         submatrix = find_submatrix_in_range(sorted_matrix, host_index, host_low, host_high)
         count = 0
         for row in submatrix:
             if row[target_index] == element:
                 count += 1
+        range_count = count
         if element in outliers:
             count += len(outliers[element])
-        avg_fpr += 1 - count / (sum([len(x) for x in outliers.values()]) + len(submatrix))
+        avg_fpr += count / (sum([len(x) for x in outliers.values()]) + len(submatrix))
+        avg_outlier_frac += sum([len(x) for x in outliers.values()]) / (sum([len(x) for x in outliers.values()]) +
+                                                                        len(submatrix))
+        # print ("Fraction of entries from range query: {}".format(len(submatrix) /
+        #                                                 (sum([len(x) for x in outliers.values()]) + len(submatrix))))
+        # if len(submatrix) > 0:
+        #     print ("Fraction of correct from just range query: {}".format(range_count / len(submatrix)))
+        # print ("Submatrix: ", submatrix)
+        # print ("Element: ", element)
+        # print ("Count in range query: {}".format(range_count))
+        # print ("Actual count: {}".format(target_col.count(element)))
+    print ("Average outlier fraction: {}".format(avg_outlier_frac / len(target_col_set)))
     return avg_fpr / len(target_col_set)
 
 def build_min_max_map(matrix, host_index, target_index):
@@ -66,7 +82,7 @@ def build_min_max_map(matrix, host_index, target_index):
     mmm.build(matrix, host_index, target_index)
     return mmm
 
-def test_fpr_mmm(mmm, matrix, host_index, target_index):
+def test_efficiency_mmm(mmm, matrix, host_index, target_index):
     """
     Tests the fpr of the min max map
     :param mmm: min max map
@@ -86,7 +102,7 @@ def test_fpr_mmm(mmm, matrix, host_index, target_index):
         for row in submatrix:
             if row[target_index] == element:
                 count += 1
-        avg_fpr += 1 - count / (len(submatrix))
+        avg_fpr += count / (len(submatrix))
     return avg_fpr / len(target_col_set)
 
 def find_submatrix_in_range(matrix, host_col, low_cutoff, high_cutoff):
@@ -130,10 +146,27 @@ if __name__ == "__main__":
     # print ("Min and max of outliers: {}, {}".format(min(outliers_list), max(outliers_list)))
     # print("Actual low and high: {}, {}".format(low, high))
 
-    matrix, df = util.read_and_create_matrix("all_stocks_5yr.csv", ["open", "Name"])
-    matrix = util.delete_rows_with_nans(matrix)
-    encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
+    # matrix, df = util.read_and_create_matrix("all_stocks_5yr.csv", ["open", "Name"])
+    # matrix = util.delete_rows_with_nans(matrix)
+    # encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
+    # trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=2, verbose=False)
+    # print ("TRS tree efficiency:", test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0))
+    # print ("TRS tree size: ", trs_tree.get_size())
+    # mmm = build_min_max_map(matrix, 0, 1)
+    # print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 0, 1))
+    # print ("Min max map size: ", mmm.get_size())
+
+    matrix, df = util.read_and_create_matrix("chicago_taxi_trips_2016_01.csv", ["taxi_id", "trip_seconds"])
+    random.shuffle(matrix)
+    matrix = util.delete_rows_with_nans(matrix)[:100000]
+    id = [row[0] for row in matrix]
+    latitude = [row[1] for row in matrix]
+    plt.scatter(id, latitude)
+    plt.savefig("chicago_taxi_id_trip_seconds.png")
+    encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 0, 1)
     trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=2, verbose=False)
-    print (test_fpr_hermit(trs_tree, encoded_matrix, 1, 0))
-    mmm = build_min_max_map(matrix, 0, 1)
-    print (test_fpr_mmm(mmm, matrix, 0, 1))
+    print ("TRS tree efficiency:", test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0))
+    print ("TRS tree size: ", trs_tree.get_size())
+    mmm = build_min_max_map(matrix, 1, 0)
+    print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 1, 0))
+    print ("Min max map size: ", mmm.get_size())

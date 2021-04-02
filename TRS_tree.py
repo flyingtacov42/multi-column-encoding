@@ -126,6 +126,19 @@ class TRSTree:
     def get_num_nodes(self):
         return len(self.get_all_nodes())
 
+    def get_size(self):
+        """
+        Gets the "size" of the trs tree
+        Size is defined as the number of "pointers" in the tree
+        Size is defined as the number of nodes + size of each node
+        :return:
+        """
+        size = 0
+        for node in self.get_all_nodes():
+            size += 1
+            size += node.get_size()
+        return size
+
 class TRSNode:
     """
     A node in the TRS tree. See Hermit paper for details
@@ -232,7 +245,7 @@ class TRSNode:
         :param num_children: number of children of this node
         :return: a list of the child nodes
         """
-        self.outliers = set([])
+        self.outliers = {}
         for i in range(num_children):
             low_cutoff = i / num_children * (self.high_cutoff - self.low_cutoff) + self.low_cutoff
             high_cutoff = (i + 1) / num_children * (self.high_cutoff - self.low_cutoff) + self.low_cutoff
@@ -290,6 +303,22 @@ class TRSNode:
         :return:
         """
         return sum([len(x) for x in self.outliers.values()])
+
+    def get_size(self):
+        """
+        Gets the size of this node
+        Size is defined in terms of the number of pointers
+        Each field is defined as 1 pointer
+        Each key in outliers is defined as 1 pointer
+        Each list in outliers list has size equal to its length
+        :return: size of node
+        """
+        size = 6 # Number of fields, includes alpha, beta, low_cutoff, high_cutoff,
+        # epsilon, recursion_flag
+        size += len(self.children)
+        size += self._outlier_length()
+        return size
+
 
 if __name__ == "__main__":
     t = TRSNode(400, 500, [], {})

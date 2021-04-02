@@ -34,6 +34,37 @@ def encode_median_regression(matrix, df, i, j):
 
     return new_matrix, encoding_scheme
 
+def encode_categorical_to_median_numerical(matrix, df, i, j, epsilon=1e-5):
+    """
+    Encodes column i and column j of the matrix with the following scheme:
+    Requirements: columns i must be categorical
+    column j must be numerical
+    ex) Name vs Age
+    For each unique value in column i, encodes it as the mean
+    of the corresponding entries in column j
+
+    Epsilon is used to "break ties" when two columns have the same median
+    The columns that have equal medians are sorted by their means, with the
+    column with the lowest mean having a value of median, second lowest having
+    median + 1 * epsilon, etc.
+    :param matrix: input matrix from a dataset
+    :param df: pandas dataframe
+    :param i: column i, the categorical column
+    :param j: column j, the numerical column
+    :return: encoded matrix (with only ith and jth column), encoding scheme
+    """
+    # print("Encoding {} vs {} with median regression".format(df.columns[i], df.columns[j]))
+    unique_columns_i = mapping_dictionary(matrix, i, j)
+
+    elements_to_median = [(x, np.median(unique_columns_i[x])) for x in unique_columns_i]
+    encoding_scheme = {elements_to_median[i][0]: elements_to_median[i][1] for i in range(len(elements_to_median))}
+
+    new_matrix = []
+    for row in matrix:
+        new_matrix.append([encoding_scheme[row[i]], row[j]])
+
+    return new_matrix, encoding_scheme
+
 
 def encode_categorical_vs_categorical(matrix, df, i, j):
     """
