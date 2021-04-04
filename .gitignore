@@ -1,0 +1,7 @@
+matplotlibrc
+individual_stocks_5yr/
+mappings/
+RealisticTabularDataSets-master/
+__pycache__/
+.idea/
+*.csv

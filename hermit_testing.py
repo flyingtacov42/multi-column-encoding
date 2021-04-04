@@ -14,8 +14,10 @@ def test_hermit(matrix, trs_tree):
 def build_hermit(encoded_matrix, host_col, target_col, outlier_ratio=0.1, error_bound=0.5, verbose=False):
     """
     Builds a TRS tree on the encoded matrix
-    Assumes the host column is column 0 and target column is column 1
+
     :param encoded_matrix: database in matrix form
+    :param host_col: host column index
+    :param target_col: target column index
     :return: a TRS tree
     """
     trs_tree = TRS_tree.TRSTree(4, outlier_ratio, error_bound)
@@ -156,17 +158,36 @@ if __name__ == "__main__":
     # print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 0, 1))
     # print ("Min max map size: ", mmm.get_size())
 
-    matrix, df = util.read_and_create_matrix("chicago_taxi_trips_2016_01.csv", ["taxi_id", "trip_seconds"])
+    matrix, df = util.read_and_create_matrix("all_stocks_5yr.csv", ["open", "Name"])
     random.shuffle(matrix)
-    matrix = util.delete_rows_with_nans(matrix)[:100000]
-    id = [row[0] for row in matrix]
-    latitude = [row[1] for row in matrix]
-    plt.scatter(id, latitude)
-    plt.savefig("chicago_taxi_id_trip_seconds.png")
-    encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 0, 1)
-    trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=2, verbose=False)
-    print ("TRS tree efficiency:", test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0))
-    print ("TRS tree size: ", trs_tree.get_size())
-    mmm = build_min_max_map(matrix, 1, 0)
-    print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 1, 0))
-    print ("Min max map size: ", mmm.get_size())
+    matrix = util.delete_rows_with_nans(matrix)
+    print (len(matrix))
+    encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
+    error_bounds = [2, 10, 100, 1000, 10000, 100000, 1000000]
+    efficiencies = []
+    sizes = []
+    for e in error_bounds:
+        trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=False)
+        efficiency = test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0)
+        print ("TRS tree efficiency:", efficiency)
+        size = trs_tree.get_size()
+        print ("TRS tree size: ", size)
+        efficiencies.append(efficiency)
+        sizes.append(size)
+    plt.plot(error_bounds, efficiencies)
+    plt.title("Error_bound vs Efficiency (Name vs Open)")
+    plt.xlabel("Error bounds")
+    plt.ylabel("Efficiency")
+    plt.xscale("log")
+    plt.savefig("stock_plots/trs_tree_efficiency.png")
+    plt.clf()
+    plt.plot(error_bounds, sizes)
+    plt.title("Error_bound vs Size (Name vs Open)")
+    plt.xlabel("Error bounds")
+    plt.ylabel("Size")
+    plt.xscale("log")
+    plt.savefig("stock_plots/trs_tree_size.png")
+    plt.clf()
+    # mmm = build_min_max_map(matrix, 1, 0)
+    # print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 1, 0))
+    # print ("Min max map size: ", mmm.get_size())

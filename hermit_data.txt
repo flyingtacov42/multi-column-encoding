@@ -1,0 +1,13 @@
+Taxi id vs fare:
+Average outlier fraction: 0.8946137563961414
+TRS tree efficiency: 0.8971552128646125
+TRS tree size:  169760
+Min max map efficiency:  0.003777720168675565
+Min max map size:  14790
+
+Taxi id vs trip_total
+Average outlier fraction: 0.9037961116433453
+TRS tree efficiency: 0.9066201426504495
+TRS tree size:  169732
+Min max map efficiency:  0.0033844394951277803
+Min max map size:  14793
