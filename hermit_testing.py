@@ -162,12 +162,21 @@ if __name__ == "__main__":
     random.shuffle(matrix)
     matrix = util.delete_rows_with_nans(matrix)
     print (len(matrix))
-    encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
+    print (matrix[:10])
+    # encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
+    encoded_matrix, encoding_scheme = encode_median_regression.encode_categorical_to_median_numerical(matrix, df, 1, 0, epsilon=0.01)
+    # for row in encoded_matrix:
+    #     print (row)
+    values = sorted(list(encoding_scheme.values()))
+    for i in range(len(values) - 1):
+        if values[i+1] - values[i] < 0.0001:
+            print (values[i+1], values[i])
     error_bounds = [2, 10, 100, 1000, 10000, 100000, 1000000]
     efficiencies = []
     sizes = []
     for e in error_bounds:
-        trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=False)
+        print ("Error bound = {}".format(e))
+        trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=True)
         efficiency = test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0)
         print ("TRS tree efficiency:", efficiency)
         size = trs_tree.get_size()
@@ -175,18 +184,18 @@ if __name__ == "__main__":
         efficiencies.append(efficiency)
         sizes.append(size)
     plt.plot(error_bounds, efficiencies)
-    plt.title("Error_bound vs Efficiency (Name vs Open)")
+    plt.title("Error_bound vs Efficiency (Name vs Open) (Median encoding)")
     plt.xlabel("Error bounds")
     plt.ylabel("Efficiency")
     plt.xscale("log")
-    plt.savefig("stock_plots/trs_tree_efficiency.png")
+    plt.savefig("stock_plots/trs_tree_efficiency_mean.png")
     plt.clf()
     plt.plot(error_bounds, sizes)
-    plt.title("Error_bound vs Size (Name vs Open)")
+    plt.title("Error_bound vs Size (Name vs Open) (Median encoding)")
     plt.xlabel("Error bounds")
     plt.ylabel("Size")
     plt.xscale("log")
-    plt.savefig("stock_plots/trs_tree_size.png")
+    plt.savefig("stock_plots/trs_tree_size_mean.png")
     plt.clf()
     # mmm = build_min_max_map(matrix, 1, 0)
     # print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 1, 0))

@@ -34,7 +34,7 @@ def encode_median_regression(matrix, df, i, j):
 
     return new_matrix, encoding_scheme
 
-def encode_categorical_to_median_numerical(matrix, df, i, j, epsilon=1e-5):
+def encode_categorical_to_median_numerical(matrix, df, categorical_col, numerical_col, epsilon=1e-5):
     """
     Encodes column i and column j of the matrix with the following scheme:
     Requirements: columns i must be categorical
@@ -49,19 +49,34 @@ def encode_categorical_to_median_numerical(matrix, df, i, j, epsilon=1e-5):
     median + 1 * epsilon, etc.
     :param matrix: input matrix from a dataset
     :param df: pandas dataframe
-    :param i: column i, the categorical column
-    :param j: column j, the numerical column
+    :param categorical_col: the categorical column
+    :param numerical_col: the numerical column
     :return: encoded matrix (with only ith and jth column), encoding scheme
     """
     # print("Encoding {} vs {} with median regression".format(df.columns[i], df.columns[j]))
-    unique_columns_i = mapping_dictionary(matrix, i, j)
+    unique_columns_i = mapping_dictionary(matrix, categorical_col, numerical_col)
 
     elements_to_median = [(x, np.median(unique_columns_i[x])) for x in unique_columns_i]
+    elements_to_median.sort(key=lambda x: x[1])
+
+    prev_median = elements_to_median[0][1] - 1
+    # Adjusting the medians
+    for i in range(len(elements_to_median)):
+        orig_key, median = elements_to_median[i]
+        if median <= prev_median:
+            print ("Same median detected")
+            elements_to_median[i] = (orig_key, prev_median + epsilon)
+            prev_median = prev_median + epsilon * same_counter
+        else:
+            prev_median = median
+            same_counter = 0
+
     encoding_scheme = {elements_to_median[i][0]: elements_to_median[i][1] for i in range(len(elements_to_median))}
 
+    print (encoding_scheme)
     new_matrix = []
     for row in matrix:
-        new_matrix.append([encoding_scheme[row[i]], row[j]])
+        new_matrix.append([encoding_scheme[row[categorical_col]], row[numerical_col]])
 
     return new_matrix, encoding_scheme
 
