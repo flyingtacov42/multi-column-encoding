@@ -51,3 +51,19 @@ def delete_rows_with_nans(matrix):
             new_matrix.append(row)
     return new_matrix
 
+def delete_rows_with_zeros(matrix):
+    """
+    Deletes all rows with zeros from the matrix
+    :param matrix: input matrix database
+    :return: new matrix with all rows with 0s deleted
+    """
+    new_matrix = []
+    for row in matrix:
+        zeros = False
+        for entry in row:
+            if entry == 0:
+                zeros = True
+        if not zeros:
+            new_matrix.append(row)
+    return new_matrix
+

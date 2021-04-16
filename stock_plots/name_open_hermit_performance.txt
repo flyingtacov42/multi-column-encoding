@@ -1,0 +1,7 @@
+Error bound, Efficiency, Fraction of database queried, Size%f %f %f %f 
+%f %f %f %f 
+%f %f %f %f 
+%f %f %f %f 
+%f %f %f %f 
+%f %f %f %f 
+%f %f %f %f 
