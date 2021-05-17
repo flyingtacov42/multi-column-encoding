@@ -163,9 +163,8 @@ if __name__ == "__main__":
     # print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 0, 1))
     # print ("Min max map size: ", mmm.get_size())
 
-    with open("RealisticTabularDataSets-master/census-income/census-income_srt.csv", "r") as csv:
-        col_names = csv.readline().split(",")
-    col_names = ["Age", "Class of Worker", "Detailed Industry Code", "Detailed Occupation Code", "Education", "Salary"]
+    # col_names = ["Age", "Class of Worker", "Detailed Industry Code", "Detailed Occupation Code", "Education", "Salary"]
+    col_names = ["Name", "Open"]
     matrix, df = util.read_and_create_matrix("RealisticTabularDataSets-master/census-income/census-income_srt.csv",
                                              col_names)
     random.shuffle(matrix)
@@ -179,62 +178,61 @@ if __name__ == "__main__":
             break
         encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, i, 5)
         # encoded_matrix, encoding_scheme = encode_median_regression.encode_categorical_to_median_numerical(matrix, df, 1, 0, epsilon=0.01)
-        # print (encoding_scheme)
-        # occs = [row[0] for row in encoded_matrix]
-        # wages = [row[1] for row in encoded_matrix]
-        # plt.scatter(occs, wages)
-        # plt.show()
+        print (encoding_scheme)
+        occs = [row[0] for row in encoded_matrix]
+        wages = [row[1] for row in encoded_matrix]
+        plt.scatter(occs, wages)
+        plt.show()
         error_bounds = [2, 10, 100, 1000, 10000, 100000, 1000000]
         efficiencies = []
         host_sizes = []
         sizes = []
-        for e in error_bounds:
-            print ("Error bound = {}".format(e))
-            trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=False)
-            efficiency, host_query_size = test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0)
-            size = trs_tree.get_size()
-            print ("TRS tree size:", size)
-            sizes.append(size)
-            print("TRS tree efficiency:", efficiency)
-            efficiencies.append(efficiency)
-            print ("TRS tree fraction of host column queried:", host_query_size)
-            host_sizes.append(host_query_size)
-
-        plt.plot(error_bounds, efficiencies)
-        plt.title("Error_bound vs Efficiency (Name vs Open)")
-        plt.xlabel("Error bounds")
-        plt.ylabel("Efficiency")
-        plt.xscale("log")
-        plt.savefig("census_income_plots/trs_tree_efficiency_{}_vs_{}.png".format(col, "salary"))
-        plt.clf()
-        plt.plot(error_bounds, sizes)
-        plt.title("Error_bound vs Size (Name vs Open)")
-        plt.xlabel("Error bounds")
-        plt.ylabel("Size")
-        plt.xscale("log")
-        plt.savefig("census_income_plots/trs_tree_size_{}_vs_{}.png".format(col, "salary"))
-        plt.clf()
-        plt.plot(error_bounds, host_sizes)
-        plt.title("Error_bound vs Fraction of Host column queried (Name vs Open)")
-        plt.xlabel("Error bounds")
-        plt.ylabel("Fraction of database queried")
-        plt.xscale("log")
-        plt.yscale("log")
-        plt.savefig("census_income_plots/trs_tree_host_frac_{}_vs_{}.png".format(col, "salary"))
-        plt.clf()
-
-        with open("census_income_plots/hermit_performance_{}_vs_{}.txt".format(col, "salary"), "w") as f:
-            mmm = build_min_max_map(matrix, 5, i)
-            efficiency, host_size = test_efficiency_mmm(mmm, matrix, 5, i)
-            print("Min max map efficiency: ", efficiency)
-            print("Min max map fraction of host column queried: ", host_size)
-            size = mmm.get_size()
-            print("Min max map size: ", size)
-            f.write("Error bound, Efficiency, Fraction of database queried, Size\n")
-            for error, efficiency, fraction, size in zip(error_bounds, efficiencies, host_sizes, sizes):
-                f.write("{} {} {} {} \n".format(error, efficiency, fraction, size))
-            f.write("Min max map:\n")
-            f.write("efficiency: {}\n".format(efficiency))
-            f.write("Fraction of database queried: {}\n".format(host_size))
-            f.write("Size: {}\n".format(size))
-            
+        # for e in error_bounds:
+        #     print ("Error bound = {}".format(e))
+        #     trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=False)
+        #     efficiency, host_query_size = test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0)
+        #     size = trs_tree.get_size()
+        #     print ("TRS tree size:", size)
+        #     sizes.append(size)
+        #     print("TRS tree efficiency:", efficiency)
+        #     efficiencies.append(efficiency)
+        #     print ("TRS tree fraction of host column queried:", host_query_size)
+        #     host_sizes.append(host_query_size)
+        #
+        # plt.plot(error_bounds, efficiencies)
+        # plt.title("Error_bound vs Efficiency (Name vs Open)")
+        # plt.xlabel("Error bounds")
+        # plt.ylabel("Efficiency")
+        # plt.xscale("log")
+        # plt.savefig("census_income_plots/trs_tree_efficiency_{}_vs_{}.png".format(col, "salary"))
+        # plt.clf()
+        # plt.plot(error_bounds, sizes)
+        # plt.title("Error_bound vs Size (Name vs Open)")
+        # plt.xlabel("Error bounds")
+        # plt.ylabel("Size")
+        # plt.xscale("log")
+        # plt.savefig("census_income_plots/trs_tree_size_{}_vs_{}.png".format(col, "salary"))
+        # plt.clf()
+        # plt.plot(error_bounds, host_sizes)
+        # plt.title("Error_bound vs Fraction of Host column queried (Name vs Open)")
+        # plt.xlabel("Error bounds")
+        # plt.ylabel("Fraction of database queried")
+        # plt.xscale("log")
+        # plt.yscale("log")
+        # plt.savefig("census_income_plots/trs_tree_host_frac_{}_vs_{}.png".format(col, "salary"))
+        # plt.clf()
+        #
+        # with open("census_income_plots/hermit_performance_{}_vs_{}.txt".format(col, "salary"), "w") as f:
+        #     mmm = build_min_max_map(matrix, 5, i)
+        #     efficiency, host_size = test_efficiency_mmm(mmm, matrix, 5, i)
+        #     print("Min max map efficiency: ", efficiency)
+        #     print("Min max map fraction of host column queried: ", host_size)
+        #     size = mmm.get_size()
+        #     print("Min max map size: ", size)
+        #     f.write("Error bound, Efficiency, Fraction of database queried, Size\n")
+        #     for error, efficiency, fraction, size in zip(error_bounds, efficiencies, host_sizes, sizes):
+        #         f.write("{} {} {} {} \n".format(error, efficiency, fraction, size))
+        #     f.write("Min max map:\n")
+        #     f.write("efficiency: {}\n".format(efficiency))
+        #     f.write("Fraction of database queried: {}\n".format(host_size))
+        #     f.write("Size: {}\n".format(size))

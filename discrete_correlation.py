@@ -455,7 +455,10 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
                 continue
             matrix_random, _, _ = encode_median_regression.encode_random(matrix, df, i, j)
 
-            matrix_multiset, _, _, factor, cutoff = multiset_encoding.encode_multiset(matrix, df, i, j)
+            matrix_multiset, encoding_scheme_i, encoding_scheme_j, factor, cutoff = multiset_encoding.encode_multiset(matrix, df, i, j)
+            print ("Size of encoding scheme")
+            correl_encoding_size = (len(encoding_scheme_i) + len(encoding_scheme_j))*2
+            print (correl_encoding_size)
             # print (matrix_multiset[:10])
             print(factor, cutoff)
 
@@ -466,6 +469,9 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
             grid_size_list = [10, 20, 30, 40, 50]
             correl_fpr_list = []
             bloom_fpr_list = []
+            two_col_bloom_fpr_list = []
+            correl_size_list = []
+            two_col_bloom_size_list = []
             for block_size in block_size_list:
                 print("Block Size:", block_size)
                 correl_fpr = test_filter_fpr.analyze_fpr_2d(matrix_multiset, multiset_encoding.DisjointSetBloomFilter2d,
@@ -474,20 +480,26 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
                 bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random, encode_median_regression.BloomFilter2d,
                                                            block_size, 0.1, block_size=block_size, test_amount=2 ** 11,
                                                            show=False)
+                two_col_bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random, multiset_encoding.TwoColumnBloomFilter,
+                                                           block_size, 0.1, block_size=block_size, test_amount=2 ** 11,
+                                                           show=False)
                 correl_fpr_list.append(correl_fpr)
                 bloom_fpr_list.append(bloom_fpr)
+                two_col_bloom_fpr_list.append(two_col_bloom_fpr)
                 print("Multiset + Bloom fpr:", correl_fpr)
                 print("Bloom only fpr:", bloom_fpr)
+                print("Two column bloom filter fpr:", two_col_bloom_fpr)
 
             plt.plot(block_size_list, correl_fpr_list, label="Multiset Encoding + Bloom")
             plt.plot(block_size_list, bloom_fpr_list, label="Bloom")
+            plt.plot(block_size_list, two_col_bloom_fpr_list, label="Two column bloom")
             plt.xlabel("Block size")
             plt.xscale("log")
             plt.ylabel("False positive Rate")
-            plt.title("Imdb Data ({} vs {})".format(df.columns[i], df.columns[j]))
+            plt.title("Stock Data ({} vs {})".format(df.columns[i], df.columns[j]))
             plt.legend()
-            # plt.savefig("imdb_plots/multiset_{}_{}.png".format(df.columns[i], df.columns[j]))
-            plt.show()
+            plt.savefig("stock_plots/multiset_{}_{}.png".format(df.columns[i], df.columns[j]))
+            # plt.show()
             plt.clf()
             improvement_ratio = []
             for c, b in zip(correl_fpr_list, bloom_fpr_list):
@@ -508,20 +520,22 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
             # plt.show()
     output.sort(key=lambda x: x[2], reverse=True)
     output = [x[0] + " " + x[1] + " " + str(x[2]) + "\n" for x in output]
-    # with open("imdb_plots/imdb_encoding.txt", "w") as fout:
-    #     fout.writelines(output)
+    with open("stock_plots/stock_encoding.txt", "w") as fout:
+        fout.writelines(output)
 
     return
 
 
 # DMV
-file_name = "imdb.csv"
+# file_name = "dmv.csv"
 # file_name = "census1881.csv"
+# file_name = "imdb.csv"
+file_name = "all_stocks_5yr.csv"
 # file_name="dmv_tiny.csv"
 # acceptance_list=["col0", "col1"]
 # acceptance_list=["State","Zip"]
-acceptance_list = ["kind", "title"]
-# acceptance_list = ["title","imdb_index","kind","production_year","season_nr","espisode_nr","series_year","company_name","country_code"]
+# acceptance_list = ["kind", "title"]
+acceptance_list = ["title","imdb_index","kind","production_year","season_nr","espisode_nr","series_year","company_name","country_code"]
 # acceptance_list = ["Date", "Time", "Location", "Code"]
 # acceptance_list = ["First Name", "Last Name", "Age", "Sect", "Province", "Occupation", "Village"]
 # acceptance_list = ["high", "low"]
@@ -531,7 +545,7 @@ acceptance_list = ["kind", "title"]
 # acceptance_list = ["Age", "Occupation"]
 # acceptance_list=["Record Type","Registration Class"]
 # acceptance_list=["City","Zip","County","State","Color","Model Year"]
-# acceptance_list = ["City", "Zip"]
+# acceptance_list = ["State", "Zip"]
 # acceptance_list=["City","Zip","County","State","Color"]
 # query_cols=[["City","Color"],["City"],["Color"],["Body Type"],["State","Color"],["City","Color","State"],["Color","Body Type"]]
 # target_fpr=0.01

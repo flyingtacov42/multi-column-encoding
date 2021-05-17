@@ -81,6 +81,9 @@ class DisjointSetFilter2d(Filter):
             return False
         return True
 
+    def size(self):
+        return 2
+
 class DisjointSetBloomFilter2d(Filter):
     """
     Wrapper class for disjoint set filter and bloom filter
@@ -97,3 +100,24 @@ class DisjointSetBloomFilter2d(Filter):
 
     def build_filter(self, matrix):
         self.bloom_filter.build_filter(matrix)
+
+    def size(self):
+        return self.bloom_filter.size() + self.disjoint_filter.size()
+
+class TwoColumnBloomFilter(Filter):
+    """
+    Bloom filter that takes in inputs as 2-tuples of coordinates
+    """
+    def __init__(self, capacity, error_rate):
+        super().__init__()
+        self.bloom_filter = BloomFilter(capacity, error_rate)
+
+    def build_filter(self, matrix):
+        for row in matrix:
+            self.bloom_filter.add(tuple(row))
+
+    def __contains__(self, item):
+        return tuple(item) in self.bloom_filter
+
+    def size(self):
+        return self.bloom_filter.num_bits // 8

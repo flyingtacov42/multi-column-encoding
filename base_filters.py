@@ -1,6 +1,5 @@
 from pybloomfilter import BloomFilter
 
-
 class Filter:
     """
     Base class for all Filter-type objects
@@ -14,6 +13,9 @@ class Filter:
 
     def __contains__(self, item):
         return False
+
+    def size(self):
+        return 0
 
 class BloomFilter2d(Filter):
     """
@@ -35,3 +37,7 @@ class BloomFilter2d(Filter):
         if item[0] in self.bloom_filter_1 and item[1] in self.bloom_filter_2:
             return True
         return False
+
+    def size(self):
+        # Size in bytes
+        return (self.bloom_filter_1.num_bits + self.bloom_filter_2.num_bits) // 8
