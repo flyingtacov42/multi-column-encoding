@@ -1,31 +1,13 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-# from sklearn.svm import SVR
-# from sklearn.svm import SVC
-# from sklearn.ensemble import RandomForestRegressor 
-# from sklearn.ensemble import RandomForestClassifier
-# from sklearn.metrics import confusion_matrix
-# from statistics import mode
-import statistics
-import pickle
-import sys
-import random
-from collections import Counter
-import scipy.stats as ss
-import copy
-
 import math
-import csv
-from tqdm import tqdm
-
+import sys
 from collections import Counter
 from itertools import repeat, chain
 
-from functools import cmp_to_key
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn
 from pybloomfilter import BloomFilter
-
-import seaborn, time
+from tqdm import tqdm
 
 import encode_median_regression
 import multiset_encoding
@@ -33,249 +15,6 @@ import test_filter_fpr
 import util
 
 seaborn.set_style('whitegrid')
-
-
-# from sklearn.linear_model import LinearRegression
-
-# from pomegranate import BayesianNetwork
-
-# analyze datasets and find 1 to 1 mappings
-# see what would be a good mapping
-
-def unique_rows(a):
-    a = np.ascontiguousarray(a)
-    unique_a = np.unique(a.view([('', a.dtype)] * a.shape[1]))
-    return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
-
-
-# def return_size(start,end,matrix,cola
-
-class discrete_correl:
-    def __init__(self):
-        self.exception_list_0 = []  # Many to many mappings
-        self.exception_list_1 = []  # Not used
-        self.exception_list_not_one = []  # Not used
-        self.factor_0_to_1 = 0
-
-
-def encode_discrete(matrix, df, i, j):
-    a = np.array(matrix)
-    temp_matrix = unique_rows(a)
-
-    print("Sanity Check unique rows before", len(temp_matrix))
-
-    col_name = list(df.columns)
-    correl_data_struct = discrete_correl()
-
-    print("\n")
-    print("columns", col_name[i], col_name[j])
-
-    prim_sec_map = {}
-    sec_prim_map = {}
-
-    for t in range(0, len(matrix)):
-        prim_sec_map[matrix[t][i]] = set([])
-        sec_prim_map[matrix[t][j]] = set([])
-
-    for t in range(0, len(matrix)):
-        prim_sec_map[matrix[t][i]].add(matrix[t][j])
-        sec_prim_map[matrix[t][j]].add(matrix[t][i])
-
-    factor = 0
-    factor_list = []
-    temp_exception_list_0 = set([])
-    temp_exception_list_not_one = set([])
-
-    for t in range(0, len(matrix)):
-        if not (len(prim_sec_map[matrix[t][i]]) == 1 and len(sec_prim_map[matrix[t][j]]) == 1):
-            temp_exception_list_not_one.add(matrix[t][i])
-
-        if len(prim_sec_map[matrix[t][i]]) == 1:
-            temp = 0
-            val = next(iter(prim_sec_map[matrix[t][i]]))
-            factor = max(len(sec_prim_map[val]), factor)
-            factor_list.append(len(sec_prim_map[val]))
-        else:
-            temp_exception_list_0.add(matrix[t][i])
-
-    print(len(temp_exception_list_0))
-
-    # factor = 1000
-    correl_data_struct.factor_0_to_1 = factor
-
-    encoding_map = {}
-    count_map = {}
-    count_exception = 0
-    max_col_1 = 0
-
-    for t in range(0, len(matrix)):
-        max_col_1 = max(max_col_1, matrix[t][j])
-
-    for t in range(0, len(matrix)):
-
-        if matrix[t][i] in encoding_map:
-            continue
-
-        if matrix[t][i] in temp_exception_list_0:
-            encoding_map[matrix[t][i]] = math.floor(factor * (max_col_1 + 4) + count_exception)
-            count_exception += 1
-        else:
-            if matrix[t][j] in count_map:
-                encoding_map[matrix[t][i]] = math.floor(matrix[t][j] * factor + count_map[matrix[t][j]])
-                count_map[matrix[t][j]] += 1
-            else:
-                count_map[matrix[t][j]] = 0
-                encoding_map[matrix[t][i]] = math.floor(matrix[t][j] * factor + count_map[matrix[t][j]])
-                count_map[matrix[t][j]] += 1
-
-    one_one_val = 0
-    for key in count_map.keys():
-        if len(sec_prim_map[key]) == 1:
-            one_one_val += 1
-
-    for t in range(0, len(matrix)):
-        matrix[t][i] = encoding_map[matrix[t][i]]
-
-    for t in temp_exception_list_0:
-        correl_data_struct.exception_list_0.append(encoding_map[t])
-
-    for t in temp_exception_list_not_one:
-        correl_data_struct.exception_list_not_one.append(encoding_map[t])
-
-    print("length of prim_sec_map", len(prim_sec_map.keys()))
-
-    print("one one mappings are:", one_one_val, "proportion:", one_one_val * 1.00 / len(prim_sec_map.keys()))
-
-    print("many to many vals:", len(correl_data_struct.exception_list_0) * 1.00 / len(prim_sec_map.keys()))
-    print("one to many vals:",
-          (len(correl_data_struct.exception_list_not_one) - len(correl_data_struct.exception_list_0)) * 1.00 / len(
-              prim_sec_map.keys()))
-    print("one to one vals:", 1.00 - (len(correl_data_struct.exception_list_not_one) * 1.00 / len(prim_sec_map.keys())))
-
-    a = np.array(matrix)
-    temp_matrix = unique_rows(a)
-
-    print("Sanity Check unique rows after", len(temp_matrix))
-    print("\n\n")
-
-    return correl_data_struct
-
-
-def analyse_fpr(matrix, df, i, j, correl_data_struct, target_fpr, block_size):
-    num_blocks = math.floor(len(matrix) / block_size)
-
-    print("num blocks:", num_blocks)
-
-    many_many_elements = set(correl_data_struct.exception_list_0)
-    one_many_elements = set(correl_data_struct.exception_list_not_one)
-
-    size_correl = 0.0
-    size_normal = 0.0
-
-    block_bloom_list_0_normal = []
-    block_bloom_list_0_correl = []
-    block_bloom_list_1 = []
-
-    block_set_0 = []
-    block_set_1 = []
-
-    for t in range(0, num_blocks):
-        block_set_0.append(set([]))
-        block_set_1.append(set([]))
-
-    for t in range(0, int(block_size * num_blocks)):
-        ind = math.floor(t / block_size)
-        block_set_0[ind].add(matrix[t][i])
-        block_set_1[ind].add(matrix[t][j])
-
-    for t in range(0, num_blocks):
-
-        count_to_add = 0
-
-        for item in block_set_0[t]:
-            if item in one_many_elements:
-                count_to_add += 1
-
-        block_bloom_list_0_correl.append(BloomFilter(count_to_add, target_fpr))
-        block_bloom_list_0_normal.append(BloomFilter(len(block_set_0[t]), target_fpr))
-        block_bloom_list_1.append(BloomFilter(len(block_set_1[t]), target_fpr))
-
-        for item in block_set_0[t]:
-            block_bloom_list_0_normal[-1].add(item)
-            if item in one_many_elements:
-                block_bloom_list_0_correl[-1].add(item)
-
-        # print("perecentage used:",count_to_add*1.00/len(block_set_0[t]))
-
-        for item in block_set_1[t]:
-            block_bloom_list_1[-1].add(item)
-
-        size_normal += 1.44 * math.log(1.00 / target_fpr, 2) * len(block_set_0[t])
-        size_correl += 1.44 * math.log(1.00 / target_fpr, 2) * count_to_add
-
-    print("Size Ratio:", size_correl * 1.00 / size_normal)
-    # correl_bf=BloomFilter(len(correl_data_struct.exception_list_0), 0.01)
-    # for item in correl_data_struct.exception_list_0:
-    #   correl_bf.add(item)
-    #   # print(item)
-
-    # correl_bf_not_one=BloomFilter(len(correl_data_struct.exception_list_not_one), 0.01)
-    # for item in correl_data_struct.exception_list_not_one:
-    #   correl_bf_not_one.add(item)
-
-    # size_correl=size_normal
-    # size_correl+=1.44*math.log(1.00/0.01,2)*len(correl_data_struct.exception_list_0)
-    # size_correl+=1.44*math.log(1.00/0.01,2)*len(correl_data_struct.exception_list_not_one)
-
-    num_queries_per_block = 1000
-
-    total_negatives = 0
-    total_false_positives_normal = 0
-    total_false_positives_correl = 0
-
-    for curr_block in tqdm(range(0, num_blocks)):
-        rand_list = np.random.uniform(0, 1.0, num_queries_per_block)
-
-        for t in range(0, num_queries_per_block):
-            ind = math.floor(rand_list[t] * num_blocks * block_size)
-
-            # If true positive, continue
-            if matrix[ind][i] in block_set_0[curr_block]:
-                if matrix[ind][i] not in many_many_elements:
-                    val = math.floor(matrix[ind][i] / correl_data_struct.factor_0_to_1)
-                    # This will give an error if the factor is too small
-                    if val not in block_bloom_list_1[curr_block] or val not in block_set_1[curr_block]:
-                        print("ERROR", val, matrix[ind][i], matrix[ind][j])
-                        sys.exit(1)
-                continue
-
-            total_negatives += 1
-
-            if matrix[ind][i] in block_bloom_list_0_normal[curr_block]:
-                total_false_positives_normal += 1
-
-            if matrix[ind][i] in many_many_elements:
-                if matrix[ind][i] in block_bloom_list_0_correl[curr_block]:
-                    total_false_positives_correl += 1
-            else:
-                val = math.floor(matrix[ind][i] / correl_data_struct.factor_0_to_1)
-                if matrix[ind][i] in one_many_elements:
-                    if matrix[ind][i] in block_bloom_list_0_correl[curr_block] and val in block_bloom_list_1[
-                        curr_block]:
-                        total_false_positives_correl += 1
-                else:
-                    if val in block_bloom_list_1[curr_block]:
-                        total_false_positives_correl += 1
-
-    fpr_correl = total_false_positives_correl * 1.00 / total_negatives
-    fpr_normal = total_false_positives_normal * 1.00 / total_negatives
-    print("Normal False positive rate:", fpr_normal)
-    print("Correl False positive rate:", fpr_correl)
-
-    print("\n\n")
-
-    return fpr_correl, size_correl, fpr_normal, size_normal
-
 
 def analyze_multiplicity(matrix, i, j):
     """
@@ -431,15 +170,12 @@ def transform_nans_to_str(matrix):
     return new_matrix
 
 
-
-
-
-def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
+def test_filter(file_name, acceptance_list, dataset_name, show=False):
     """
     Benchmarks an encoding scheme
     :param file_name: input file
     :param acceptance_list: list of columns to filter
-    :param output_file_name: file prefix to plot to
+    :param dataset_name: name of dataset ex) dmv
     :param show: if true, shows plots
     :return: nothing
     """
@@ -455,10 +191,8 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
                 continue
             matrix_random, _, _ = encode_median_regression.encode_random(matrix, df, i, j)
 
-            matrix_multiset, encoding_scheme_i, encoding_scheme_j, factor, cutoff = multiset_encoding.encode_multiset(matrix, df, i, j)
-            print ("Size of encoding scheme")
-            correl_encoding_size = (len(encoding_scheme_i) + len(encoding_scheme_j))*2
-            print (correl_encoding_size)
+            matrix_multiset, encoding_scheme_i, encoding_scheme_j, factor, cutoff = multiset_encoding.encode_multiset(
+                matrix, df, i, j)
             # print (matrix_multiset[:10])
             print(factor, cutoff)
 
@@ -475,14 +209,16 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
             for block_size in block_size_list:
                 print("Block Size:", block_size)
                 correl_fpr = test_filter_fpr.analyze_fpr_2d(matrix_multiset, multiset_encoding.DisjointSetBloomFilter2d,
-                                                            factor, cutoff, block_size, 0.1, block_size=block_size,
-                                                            test_amount=2 ** 11, show=False)
+                                                        factor, cutoff, block_size, 0.00001, block_size=block_size,
+                                                        test_amount=2 ** 11, show=False)
                 bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random, encode_median_regression.BloomFilter2d,
-                                                           block_size, 0.1, block_size=block_size, test_amount=2 ** 11,
-                                                           show=False)
-                two_col_bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random, multiset_encoding.TwoColumnBloomFilter,
-                                                           block_size, 0.1, block_size=block_size, test_amount=2 ** 11,
-                                                           show=False)
+                                                       block_size, 0.00001, block_size=block_size, test_amount=2 ** 11,
+                                                       show=False)
+                two_col_bloom_fpr = test_filter_fpr.analyze_fpr_2d(matrix_random,
+                                                               multiset_encoding.TwoColumnBloomFilter,
+                                                               block_size, 0.00001, block_size=block_size,
+                                                               test_amount=2 ** 11,
+                                                               show=False)
                 correl_fpr_list.append(correl_fpr)
                 bloom_fpr_list.append(bloom_fpr)
                 two_col_bloom_fpr_list.append(two_col_bloom_fpr)
@@ -496,31 +232,31 @@ def benchmark_vortex(file_name, acceptance_list, output_file_name, show=False):
             plt.xlabel("Block size")
             plt.xscale("log")
             plt.ylabel("False positive Rate")
-            plt.title("Stock Data ({} vs {})".format(df.columns[i], df.columns[j]))
+            plt.title("{} Data ({} vs {})".format(dataset_name, df.columns[i], df.columns[j]))
             plt.legend()
-            plt.savefig("stock_plots/multiset_{}_{}.png".format(df.columns[i], df.columns[j]))
-            # plt.show()
+            plt.savefig("{}_plots/multiset_{}_{}.png".format(dataset_name, df.columns[i], df.columns[j]))
+            if show:
+                plt.show()
             plt.clf()
             improvement_ratio = []
             for c, b in zip(correl_fpr_list, bloom_fpr_list):
-                # If both c and b are << 0.01, then their results matter less
-                if (b != 0):
+                if b != 0:
                     improvement_ratio.append(1 - c / b)
 
             # sometimes it breaks and both fprs are always 0
-            if (len(improvement_ratio) == 0):
+            if len(improvement_ratio) == 0:
                 continue
             improvement_ratio = sum(improvement_ratio) / len(improvement_ratio)
             if improvement_ratio >= 1:
                 improvement_ratio = -1
             else:
                 improvement_ratio = 1 / (1 - improvement_ratio)
-            print ("Improvement ratio is: {}".format(improvement_ratio))
+            print("Improvement ratio is: {}".format(improvement_ratio))
             output.append([df.columns[i], df.columns[j], improvement_ratio])
             # plt.show()
     output.sort(key=lambda x: x[2], reverse=True)
     output = [x[0] + " " + x[1] + " " + str(x[2]) + "\n" for x in output]
-    with open("stock_plots/stock_encoding.txt", "w") as fout:
+    with open("{}_plots/{}_encoding.txt".format(dataset_name, dataset_name), "w") as fout:
         fout.writelines(output)
 
     return
@@ -535,12 +271,13 @@ file_name = "all_stocks_5yr.csv"
 # acceptance_list=["col0", "col1"]
 # acceptance_list=["State","Zip"]
 # acceptance_list = ["kind", "title"]
-acceptance_list = ["title","imdb_index","kind","production_year","season_nr","espisode_nr","series_year","company_name","country_code"]
+# acceptance_list = ["title", "imdb_index", "kind", "production_year", "season_nr", "espisode_nr", "series_year",
+#                    "company_name", "country_code"]
 # acceptance_list = ["Date", "Time", "Location", "Code"]
 # acceptance_list = ["First Name", "Last Name", "Age", "Sect", "Province", "Occupation", "Village"]
 # acceptance_list = ["high", "low"]
 # acceptance_list = ["season_nr", "imdb_index"]
-# acceptance_list = ["date","open","high","low","close","volume","Name"]
+acceptance_list = ["date","open","high","low","close","volume","Name"]
 # acceptance_list = ["First Name", "Age"]
 # acceptance_list = ["Age", "Occupation"]
 # acceptance_list=["Record Type","Registration Class"]
@@ -551,4 +288,4 @@ acceptance_list = ["title","imdb_index","kind","production_year","season_nr","es
 # target_fpr=0.01
 
 # benchamrk_bloom_filter_real(file_name,acceptance_list)
-benchmark_vortex(file_name, acceptance_list, "mappings/stock_data")
+test_filter(file_name, acceptance_list, "stock")
