@@ -7,9 +7,6 @@ import bisect
 import random
 import matplotlib.pyplot as plt
 
-def test_hermit(matrix, trs_tree):
-    pass
-
 
 def build_hermit(encoded_matrix, host_col, target_col, outlier_ratio=0.1, error_bound=0.5, verbose=False):
     """
@@ -130,40 +127,6 @@ def find_submatrix_in_range(matrix, host_col, low_cutoff, high_cutoff):
 
 
 if __name__ == "__main__":
-    # matrix, df = util.read_and_create_matrix("all_stocks_5yr.csv", ["open", "Name"])
-    # matrix = util.delete_rows_with_nans(matrix)
-    # print (matrix[:10])
-    # encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
-    # print (encoding_scheme)
-    # print (encoded_matrix[0])
-    # encoded_matrix = util.delete_rows_with_nans(encoded_matrix)
-    # trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=100, verbose=True)
-    # print("Number of nodes: ", trs_tree.get_num_nodes())
-    # low, high, outliers = trs_tree.get_host_range(0, 505)
-    # outliers_length = sum([len(x) for x in outliers.values()])
-    # print("number of outliers: ", outliers_length)
-    # print("total rows: ", len(encoded_matrix))
-    # print("fraction encoded successfully: ", 1 - outliers_length / len(encoded_matrix))
-    # print("Calculated low and high: {}, {}".format(low, high))
-    # low = min([row[1] for row in encoded_matrix])
-    # high = max([row[1] for row in encoded_matrix])
-    # outliers_list = []
-    # for x in outliers.values():
-    #     outliers_list += x
-    # print ("Min and max of outliers: {}, {}".format(min(outliers_list), max(outliers_list)))
-    # print("Actual low and high: {}, {}".format(low, high))
-
-    # matrix, df = util.read_and_create_matrix("all_stocks_5yr.csv", ["open", "Name"])
-    # matrix = util.delete_rows_with_nans(matrix)
-    # encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, 1, 0)
-    # trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=2, verbose=False)
-    # print ("TRS tree efficiency:", test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0))
-    # print ("TRS tree size: ", trs_tree.get_size())
-    # mmm = build_min_max_map(matrix, 0, 1)
-    # print ("Min max map efficiency: ", test_efficiency_mmm(mmm, matrix, 0, 1))
-    # print ("Min max map size: ", mmm.get_size())
-
-    # col_names = ["Age", "Class of Worker", "Detailed Industry Code", "Detailed Occupation Code", "Education", "Salary"]
     col_names = ["Name", "Open"]
     matrix, df = util.read_and_create_matrix("RealisticTabularDataSets-master/census-income/census-income_srt.csv",
                                              col_names)
@@ -177,6 +140,7 @@ if __name__ == "__main__":
         if i == 5:
             break
         encoded_matrix, encoding_scheme = encode_median_regression.encode_median_regression(matrix, df, i, 5)
+        # Alternate encoding scheme
         # encoded_matrix, encoding_scheme = encode_median_regression.encode_categorical_to_median_numerical(matrix, df, 1, 0, epsilon=0.01)
         print (encoding_scheme)
         occs = [row[0] for row in encoded_matrix]
@@ -187,52 +151,52 @@ if __name__ == "__main__":
         efficiencies = []
         host_sizes = []
         sizes = []
-        # for e in error_bounds:
-        #     print ("Error bound = {}".format(e))
-        #     trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=False)
-        #     efficiency, host_query_size = test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0)
-        #     size = trs_tree.get_size()
-        #     print ("TRS tree size:", size)
-        #     sizes.append(size)
-        #     print("TRS tree efficiency:", efficiency)
-        #     efficiencies.append(efficiency)
-        #     print ("TRS tree fraction of host column queried:", host_query_size)
-        #     host_sizes.append(host_query_size)
-        #
-        # plt.plot(error_bounds, efficiencies)
-        # plt.title("Error_bound vs Efficiency (Name vs Open)")
-        # plt.xlabel("Error bounds")
-        # plt.ylabel("Efficiency")
-        # plt.xscale("log")
-        # plt.savefig("census_income_plots/trs_tree_efficiency_{}_vs_{}.png".format(col, "salary"))
-        # plt.clf()
-        # plt.plot(error_bounds, sizes)
-        # plt.title("Error_bound vs Size (Name vs Open)")
-        # plt.xlabel("Error bounds")
-        # plt.ylabel("Size")
-        # plt.xscale("log")
-        # plt.savefig("census_income_plots/trs_tree_size_{}_vs_{}.png".format(col, "salary"))
-        # plt.clf()
-        # plt.plot(error_bounds, host_sizes)
-        # plt.title("Error_bound vs Fraction of Host column queried (Name vs Open)")
-        # plt.xlabel("Error bounds")
-        # plt.ylabel("Fraction of database queried")
-        # plt.xscale("log")
-        # plt.yscale("log")
-        # plt.savefig("census_income_plots/trs_tree_host_frac_{}_vs_{}.png".format(col, "salary"))
-        # plt.clf()
-        #
-        # with open("census_income_plots/hermit_performance_{}_vs_{}.txt".format(col, "salary"), "w") as f:
-        #     mmm = build_min_max_map(matrix, 5, i)
-        #     efficiency, host_size = test_efficiency_mmm(mmm, matrix, 5, i)
-        #     print("Min max map efficiency: ", efficiency)
-        #     print("Min max map fraction of host column queried: ", host_size)
-        #     size = mmm.get_size()
-        #     print("Min max map size: ", size)
-        #     f.write("Error bound, Efficiency, Fraction of database queried, Size\n")
-        #     for error, efficiency, fraction, size in zip(error_bounds, efficiencies, host_sizes, sizes):
-        #         f.write("{} {} {} {} \n".format(error, efficiency, fraction, size))
-        #     f.write("Min max map:\n")
-        #     f.write("efficiency: {}\n".format(efficiency))
-        #     f.write("Fraction of database queried: {}\n".format(host_size))
-        #     f.write("Size: {}\n".format(size))
+        for e in error_bounds:
+            print ("Error bound = {}".format(e))
+            trs_tree = build_hermit(encoded_matrix, 1, 0, outlier_ratio=0.1, error_bound=e, verbose=False)
+            efficiency, host_query_size = test_efficiency_hermit(trs_tree, encoded_matrix, 1, 0)
+            size = trs_tree.get_size()
+            print ("TRS tree size:", size)
+            sizes.append(size)
+            print("TRS tree efficiency:", efficiency)
+            efficiencies.append(efficiency)
+            print ("TRS tree fraction of host column queried:", host_query_size)
+            host_sizes.append(host_query_size)
+
+        plt.plot(error_bounds, efficiencies)
+        plt.title("Error_bound vs Efficiency (Name vs Open)")
+        plt.xlabel("Error bounds")
+        plt.ylabel("Efficiency")
+        plt.xscale("log")
+        plt.savefig("census_income_plots/trs_tree_efficiency_{}_vs_{}.png".format(col, "salary"))
+        plt.clf()
+        plt.plot(error_bounds, sizes)
+        plt.title("Error_bound vs Size (Name vs Open)")
+        plt.xlabel("Error bounds")
+        plt.ylabel("Size")
+        plt.xscale("log")
+        plt.savefig("census_income_plots/trs_tree_size_{}_vs_{}.png".format(col, "salary"))
+        plt.clf()
+        plt.plot(error_bounds, host_sizes)
+        plt.title("Error_bound vs Fraction of Host column queried (Name vs Open)")
+        plt.xlabel("Error bounds")
+        plt.ylabel("Fraction of database queried")
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.savefig("census_income_plots/trs_tree_host_frac_{}_vs_{}.png".format(col, "salary"))
+        plt.clf()
+
+        with open("census_income_plots/hermit_performance_{}_vs_{}.txt".format(col, "salary"), "w") as f:
+            mmm = build_min_max_map(matrix, 5, i)
+            efficiency, host_size = test_efficiency_mmm(mmm, matrix, 5, i)
+            print("Min max map efficiency: ", efficiency)
+            print("Min max map fraction of host column queried: ", host_size)
+            size = mmm.get_size()
+            print("Min max map size: ", size)
+            f.write("Error bound, Efficiency, Fraction of database queried, Size\n")
+            for error, efficiency, fraction, size in zip(error_bounds, efficiencies, host_sizes, sizes):
+                f.write("{} {} {} {} \n".format(error, efficiency, fraction, size))
+            f.write("Min max map:\n")
+            f.write("efficiency: {}\n".format(efficiency))
+            f.write("Fraction of database queried: {}\n".format(host_size))
+            f.write("Size: {}\n".format(size))

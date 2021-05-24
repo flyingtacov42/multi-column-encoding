@@ -320,11 +320,3 @@ class TRSNode:
         return size
 
 
-if __name__ == "__main__":
-    t = TRSNode(400, 500, [], {})
-    data = [[i*2, i] for i in range(400, 501)]
-    data.append([2000, 500])
-    t.create_regression(data)
-    t.find_outliers(data, 1)
-    print (t.get_host_range(400, 500))
-

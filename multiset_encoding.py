@@ -1,12 +1,11 @@
-import numpy as np
-import pandas as pd
-import random
-import matplotlib.pyplot as plt
-from copy import deepcopy
-from collections import Counter
 from pybloomfilter import BloomFilter
 from util import mapping_dictionary
 from base_filters import Filter, BloomFilter2d
+from pybloomfilter import BloomFilter
+
+from base_filters import Filter, BloomFilter2d
+from util import mapping_dictionary
+
 
 def encode_multiset(matrix, df, col_i, col_j):
     """
